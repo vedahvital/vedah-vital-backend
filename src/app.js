@@ -13,7 +13,7 @@ function createApp() {
   app.use(express.json({ limit: '2mb' }));
   app.use(morgan('dev'));
 
-  app.get('/health', (req, res) => {
+  app.get('/', (req, res) => {
     res.json({ ok: true });
   });
 

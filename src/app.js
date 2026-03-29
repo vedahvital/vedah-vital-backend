@@ -7,14 +7,7 @@ const publicRoutes = require('./routes/public');
 const cmsRoutes = require('./routes/cms');
 const reviewController = require('./controllers/reviewController');
 
-const allowedOrigins = [
-  'https://vedah-vital-ui.vercel.app',
-  'https://vedah-vital-cms.vercel.app',
-  'http://localhost:5173',
-  'http://localhost:5174',
-  'http://localhost:3000',
-];
-
+const allowedOrigins = ["*"]
 function createApp() {
   const app = express();
 

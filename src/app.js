@@ -5,6 +5,7 @@ const morgan = require('morgan');
 const { notFoundHandler, errorHandler } = require('./middleware/errors');
 const publicRoutes = require('./routes/public');
 const cmsRoutes = require('./routes/cms');
+const reviewController = require('./controllers/reviewController');
 
 function createApp() {
   const app = express();
@@ -19,6 +20,7 @@ function createApp() {
 
   app.use('/api/public', publicRoutes);
   app.use('/api/cms', cmsRoutes);
+  app.use('/api', reviewController);
 
   app.use(notFoundHandler);
   app.use(errorHandler);

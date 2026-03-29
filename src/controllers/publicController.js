@@ -55,6 +55,14 @@ async function verifyQr(req, res) {
     return res.status(404).json({ error: 'Invalid QR code' });
   }
 
+  if (qr.used) {
+    return res.status(409).json({ error: 'This QR code has already been used.' });
+  }
+
+  qr.used = true;
+  qr.usedAt = new Date();
+  await qr.save();
+
   res.json({
     code: qr.code,
     used: qr.used,
@@ -93,6 +101,14 @@ async function verifyQrImage(req, res) {
 
     const qrDoc = await QrCode.findOne({ code });
     if (!qrDoc) return res.status(404).json({ error: 'Invalid QR code' });
+
+    if (qrDoc.used) {
+      return res.status(409).json({ error: 'This QR code has already been used.' });
+    }
+
+    qrDoc.used = true;
+    qrDoc.usedAt = new Date();
+    await qrDoc.save();
 
     return res.json({
       code: qrDoc.code,

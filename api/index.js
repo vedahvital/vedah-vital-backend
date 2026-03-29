@@ -3,12 +3,11 @@ const dotenv = require('dotenv');
 dotenv.config();
 
 const { createApp } = require('../src/app');
-const { connectDb } = require('../src/config/db');
+require('../src/config/db');
 
 const PORT = process.env.PORT || 5000;
 
 async function start() {
-  await connectDb();
 
   const app = createApp();
   app.listen(PORT, () => {

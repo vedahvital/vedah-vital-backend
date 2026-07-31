@@ -3,7 +3,6 @@ const dotenv = require('dotenv');
 dotenv.config();
 
 const { createApp } = require('../src/app');
-require('../src/config/db');
 
 const app = createApp();
 

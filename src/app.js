@@ -17,6 +17,19 @@ function createApp() {
   app.use(express.json({ limit: '2mb' }));
   app.use(morgan('dev'));
 
+  // Ensure DB connected on serverless requests
+  app.use(async (req, res, next) => {
+    if (req.path === '/') return next();
+    try {
+      const { connectDB } = require('./config/db');
+      await connectDB();
+      next();
+    } catch (err) {
+      console.error('Database connection middleware error:', err);
+      res.status(500).json({ success: false, message: 'Database connection failed' });
+    }
+  });
+
   app.get('/', (req, res) => {
     res.json({ ok: true });
   });

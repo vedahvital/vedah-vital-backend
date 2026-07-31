@@ -4,6 +4,7 @@ const QrCodeReader = require('qrcode-reader');
 
 const QrCode = require('../models/QrCode');
 const Subscriber = require('../models/Subscriber');
+const ContactSubmission = require('../models/ContactSubmission');
 const { sendMail } = require('../utils/mailer');
 const { contactNotificationToSupport, contactConfirmationToUser } = require('../utils/emailTemplates');
 
@@ -16,6 +17,9 @@ const contactSchema = z.object({
 async function contact(req, res, next) {
   try {
     const { name, email, message } = contactSchema.parse(req.body);
+
+    // Save submission to database for CMS tracking
+    await ContactSubmission.create({ name, email, message });
 
     const supportEmail = process.env.SUPPORT_EMAIL;
     if (!supportEmail) {

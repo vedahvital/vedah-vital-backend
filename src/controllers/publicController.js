@@ -117,11 +117,26 @@ async function verifyQrImage(req, res) {
       product: qrDoc.product,
       createdAt: qrDoc.createdAt
     });
+const Subscriber = require('../models/Subscriber');
+
+async function subscribe(req, res, next) {
+  try {
+    const { email } = z.object({ email: z.string().email() }).parse(req.body);
+    const normalizedEmail = email.trim().toLowerCase();
+
+    let subscriber = await Subscriber.findOne({ email: normalizedEmail });
+    if (!subscriber) {
+      subscriber = await Subscriber.create({ email: normalizedEmail });
+    }
+
+    return res.json({ success: true, message: 'Subscribed to promotional updates!' });
   } catch (err) {
-    console.error('QR decode error', err);
-    return res.status(500).json({ error: err.message || 'Failed to decode image' });
+    if (err.name === 'ZodError') {
+      return res.status(400).json({ error: 'Please provide a valid email address.' });
+    }
+    next(err);
   }
 }
 
-module.exports = { contact, verifyQr, verifyQrImage };
+module.exports = { contact, verifyQr, verifyQrImage, subscribe };
 

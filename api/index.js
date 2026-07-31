@@ -5,17 +5,13 @@ dotenv.config();
 const { createApp } = require('../src/app');
 require('../src/config/db');
 
-const PORT = process.env.PORT || 5000;
+const app = createApp();
 
-async function start() {
-
-  const app = createApp();
+if (!process.env.VERCEL) {
+  const PORT = process.env.PORT || 5000;
   app.listen(PORT, () => {
     console.log(`Vedah Vital backend listening on port ${PORT}`);
   });
 }
 
-start().catch((err) => {
-  console.error('Failed to start server', err);
-  process.exit(1);
-});
+module.exports = app;

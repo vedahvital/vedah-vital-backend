@@ -1,9 +1,9 @@
 const { z } = require('zod');
-
 const Jimp = require('jimp');
 const QrCodeReader = require('qrcode-reader');
 
 const QrCode = require('../models/QrCode');
+const Subscriber = require('../models/Subscriber');
 const { sendMail } = require('../utils/mailer');
 const { contactNotificationToSupport, contactConfirmationToUser } = require('../utils/emailTemplates');
 
@@ -117,7 +117,11 @@ async function verifyQrImage(req, res) {
       product: qrDoc.product,
       createdAt: qrDoc.createdAt
     });
-const Subscriber = require('../models/Subscriber');
+  } catch (err) {
+    console.error('QR decode error', err);
+    return res.status(500).json({ error: err.message || 'Failed to decode image' });
+  }
+}
 
 async function subscribe(req, res, next) {
   try {
@@ -139,4 +143,3 @@ async function subscribe(req, res, next) {
 }
 
 module.exports = { contact, verifyQr, verifyQrImage, subscribe };
-

@@ -19,30 +19,32 @@ async function contact(req, res, next) {
     const { name, email, message } = contactSchema.parse(req.body);
 
     // Save submission to database for CMS tracking
-    await ContactSubmission.create({ name, email, message });
+    const submission = await ContactSubmission.create({ name, email, message });
 
     const supportEmail = process.env.SUPPORT_EMAIL;
-    if (!supportEmail) {
-      return res.status(500).json({ error: 'Missing SUPPORT_EMAIL' });
+    if (supportEmail) {
+      try {
+        // Notify support team
+        await sendMail({
+          to: supportEmail,
+          subject: `New Contact Message from ${name}`,
+          html: contactNotificationToSupport({ name, email, message }),
+          text: `From: ${name} <${email}>\n\n${message}`
+        });
+
+        // Confirmation to the user
+        await sendMail({
+          to: email,
+          subject: 'We received your message — Vedah Vital',
+          html: contactConfirmationToUser({ name, message }),
+          text: `Hi ${name},\n\nThanks for reaching out! We've received your message and will get back to you shortly.\n\nYour message:\n${message}\n\n— The Vedah Vital Team`
+        });
+      } catch (mailErr) {
+        console.warn('Contact email delivery warning:', mailErr.message);
+      }
     }
 
-    // Notify support team
-    await sendMail({
-      to: supportEmail,
-      subject: `New Contact Message from ${name}`,
-      html: contactNotificationToSupport({ name, email, message }),
-      text: `From: ${name} <${email}>\n\n${message}`
-    });
-
-    // Confirmation to the user
-    await sendMail({
-      to: email,
-      subject: 'We received your message — Vedah Vital',
-      html: contactConfirmationToUser({ name, message }),
-      text: `Hi ${name},\n\nThanks for reaching out! We've received your message and will get back to you shortly.\n\nYour message:\n${message}\n\n— The Vedah Vital Team`
-    });
-
-    res.json({ ok: true });
+    res.json({ ok: true, success: true, submissionId: submission._id });
   } catch (err) {
     next(err);
   }

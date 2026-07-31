@@ -26,7 +26,12 @@ function createApp() {
       next();
     } catch (err) {
       console.error('Database connection middleware error:', err);
-      res.status(500).json({ success: false, message: 'Database connection failed' });
+      return res.status(500).json({ 
+        success: false, 
+        message: 'Database connection failed', 
+        error: err.message,
+        dbUrlSet: !!process.env.MONGODB_URI 
+      });
     }
   });
 

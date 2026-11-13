@@ -6,7 +6,7 @@ const QRCode = require('qrcode');
 const QrCodeModel = require('../models/QrCode');
 
 const generateSchema = z.object({
-  count: z.number().int().min(1).max(500).default(1),
+  count: z.number().int().min(1).max(1000).default(1),
   product: z
     .object({
       name: z.string().optional(),
@@ -24,7 +24,7 @@ const updateUsedSchema = z.object({
 });
 
 const exportSchema = z.object({
-  ids: z.array(z.string().min(1)).min(1).max(500)
+  ids: z.array(z.string().min(1)).min(1).max(1000)
 });
 
 function createCode() {
@@ -72,7 +72,7 @@ async function list(req, res) {
   if (used === 'true') filter.used = true;
   if (used === 'false') filter.used = false;
 
-  const limit = req.query.limit ? Math.min(Number(req.query.limit), 500) : 100;
+  const limit = req.query.limit ? Math.min(Number(req.query.limit), 1000) : 100;
   const skip = req.query.skip ? Number(req.query.skip) : 0;
 
   const [items, total, totalAll, totalUsed] = await Promise.all([

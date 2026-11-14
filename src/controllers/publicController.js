@@ -53,28 +53,78 @@ async function contact(req, res, next) {
 async function verifyQr(req, res) {
   const code = String(req.params.code || '').trim();
   if (!code) {
-    return res.status(400).json({ error: 'Missing code' });
+    return res.status(400).json({
+      status: 'INVALID',
+      verified: false,
+      error: 'Missing code'
+    });
   }
 
   const qr = await QrCode.findOne({ code });
   if (!qr) {
-    return res.status(404).json({ error: 'Invalid QR code' });
+    return res.status(404).json({
+      status: 'NOT_FOUND',
+      verified: false,
+      code,
+      message: "We could not verify this product's identification code. Please contact VEDAH VITAL customer support before using the product."
+    });
   }
 
+  const now = new Date();
+
+  // Scenario B: Code already scanned
   if (qr.used) {
-    return res.status(409).json({ error: 'This QR code has already been used.' });
+    const firstVerifiedAt = qr.usedAt || qr.updatedAt || qr.createdAt;
+    qr.scanCount = (qr.scanCount || 1) + 1;
+    qr.lastScannedAt = now;
+    await qr.save();
+
+    return res.json({
+      status: 'ALREADY_SCANNED',
+      verified: false,
+      code: qr.code,
+      firstVerificationDate: firstVerifiedAt,
+      currentScanDate: now,
+      scanCount: qr.scanCount,
+      product: {
+        name: qr.product?.name || 'KSM-66® Ashwagandha Root Extract',
+        brand: qr.product?.brand || 'VEDAH VITAL',
+        strength: qr.product?.strength || '500 mg',
+        blackPepperExtract: qr.product?.blackPepperExtract || '5 mg',
+        packSize: qr.product?.packSize || '60 Vegan Capsules',
+        batchNumber: qr.product?.batchNo || qr.code,
+        mfgDate: qr.product?.mfgDate || '—',
+        expDate: qr.product?.expDate || '—'
+      },
+      labReports: qr.labReports || { potency: [], heavyMetals: [], microbial: [] },
+      message: "This product's QR code has previously been scanned."
+    });
   }
 
+  // Scenario A: Genuine product (First verification)
   qr.used = true;
-  qr.usedAt = new Date();
+  qr.usedAt = now;
+  qr.scanCount = 1;
+  qr.lastScannedAt = now;
   await qr.save();
 
-  res.json({
+  return res.json({
+    status: 'GENUINE',
+    verified: true,
     code: qr.code,
-    used: qr.used,
-    usedAt: qr.usedAt,
-    product: qr.product,
-    createdAt: qr.createdAt
+    verificationDate: now,
+    product: {
+      name: qr.product?.name || 'KSM-66® Ashwagandha Root Extract',
+      brand: qr.product?.brand || 'VEDAH VITAL',
+      strength: qr.product?.strength || '500 mg',
+      blackPepperExtract: qr.product?.blackPepperExtract || '5 mg',
+      packSize: qr.product?.packSize || '60 Vegan Capsules',
+      batchNumber: qr.product?.batchNo || qr.code,
+      mfgDate: qr.product?.mfgDate || '—',
+      expDate: qr.product?.expDate || '—'
+    },
+    labReports: qr.labReports || { potency: [], heavyMetals: [], microbial: [] },
+    message: 'Your product has been successfully verified.'
   });
 }
 
@@ -102,26 +152,76 @@ async function verifyQrImage(req, res) {
 
     const code = String(decoded || '').trim();
     if (!code) {
-      return res.status(400).json({ error: 'Could not decode QR code from image' });
+      return res.status(400).json({
+        status: 'INVALID',
+        verified: false,
+        error: 'Could not decode QR code from image'
+      });
     }
 
     const qrDoc = await QrCode.findOne({ code });
-    if (!qrDoc) return res.status(404).json({ error: 'Invalid QR code' });
+    if (!qrDoc) {
+      return res.status(404).json({
+        status: 'NOT_FOUND',
+        verified: false,
+        code,
+        message: "We could not verify this product's identification code. Please contact VEDAH VITAL customer support before using the product."
+      });
+    }
+
+    const now = new Date();
 
     if (qrDoc.used) {
-      return res.status(409).json({ error: 'This QR code has already been used.' });
+      const firstVerifiedAt = qrDoc.usedAt || qrDoc.updatedAt || qrDoc.createdAt;
+      qrDoc.scanCount = (qrDoc.scanCount || 1) + 1;
+      qrDoc.lastScannedAt = now;
+      await qrDoc.save();
+
+      return res.json({
+        status: 'ALREADY_SCANNED',
+        verified: false,
+        code: qrDoc.code,
+        firstVerificationDate: firstVerifiedAt,
+        currentScanDate: now,
+        scanCount: qrDoc.scanCount,
+        product: {
+          name: qrDoc.product?.name || 'KSM-66® Ashwagandha Root Extract',
+          brand: qrDoc.product?.brand || 'VEDAH VITAL',
+          strength: qrDoc.product?.strength || '500 mg',
+          blackPepperExtract: qrDoc.product?.blackPepperExtract || '5 mg',
+          packSize: qrDoc.product?.packSize || '60 Vegan Capsules',
+          batchNumber: qrDoc.product?.batchNo || qrDoc.code,
+          mfgDate: qrDoc.product?.mfgDate || '—',
+          expDate: qrDoc.product?.expDate || '—'
+        },
+        labReports: qrDoc.labReports || { potency: [], heavyMetals: [], microbial: [] },
+        message: "This product's QR code has previously been scanned."
+      });
     }
 
     qrDoc.used = true;
-    qrDoc.usedAt = new Date();
+    qrDoc.usedAt = now;
+    qrDoc.scanCount = 1;
+    qrDoc.lastScannedAt = now;
     await qrDoc.save();
 
     return res.json({
+      status: 'GENUINE',
+      verified: true,
       code: qrDoc.code,
-      used: qrDoc.used,
-      usedAt: qrDoc.usedAt,
-      product: qrDoc.product,
-      createdAt: qrDoc.createdAt
+      verificationDate: now,
+      product: {
+        name: qrDoc.product?.name || 'KSM-66® Ashwagandha Root Extract',
+        brand: qrDoc.product?.brand || 'VEDAH VITAL',
+        strength: qrDoc.product?.strength || '500 mg',
+        blackPepperExtract: qrDoc.product?.blackPepperExtract || '5 mg',
+        packSize: qrDoc.product?.packSize || '60 Vegan Capsules',
+        batchNumber: qrDoc.product?.batchNo || qrDoc.code,
+        mfgDate: qrDoc.product?.mfgDate || '—',
+        expDate: qrDoc.product?.expDate || '—'
+      },
+      labReports: qrDoc.labReports || { potency: [], heavyMetals: [], microbial: [] },
+      message: 'Your product has been successfully verified.'
     });
   } catch (err) {
     console.error('QR decode error', err);

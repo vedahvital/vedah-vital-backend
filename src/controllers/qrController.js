@@ -10,11 +10,22 @@ const generateSchema = z.object({
   product: z
     .object({
       name: z.string().optional(),
+      brand: z.string().optional(),
+      strength: z.string().optional(),
+      blackPepperExtract: z.string().optional(),
+      packSize: z.string().optional(),
       description: z.string().optional(),
       sku: z.string().optional(),
       batchNo: z.string().optional(),
       mfgDate: z.string().optional(),
       expDate: z.string().optional()
+    })
+    .optional(),
+  labReports: z
+    .object({
+      potency: z.array(z.string()).max(5).optional(),
+      heavyMetals: z.array(z.string()).max(5).optional(),
+      microbial: z.array(z.string()).max(5).optional()
     })
     .optional()
 });
@@ -49,7 +60,8 @@ async function generate(req, res) {
       code,
       used: false,
       usedAt: null,
-      product: parsed.product || {}
+      product: parsed.product || {},
+      labReports: parsed.labReports || { potency: [], heavyMetals: [], microbial: [] }
     });
 
     items.push(doc);
@@ -61,6 +73,7 @@ async function generate(req, res) {
       code: d.code,
       used: d.used,
       product: d.product,
+      labReports: d.labReports,
       createdAt: d.createdAt
     }))
   });
@@ -112,6 +125,7 @@ async function details(req, res) {
     used: d.used,
     usedAt: d.usedAt,
     product: d.product,
+    labReports: d.labReports,
     qrDataUrl,
     createdAt: d.createdAt,
     updatedAt: d.updatedAt

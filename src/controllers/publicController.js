@@ -150,13 +150,26 @@ async function verifyQrImage(req, res) {
       }
     });
 
-    const code = String(decoded || '').trim();
+    let code = String(decoded || '').trim();
     if (!code) {
       return res.status(400).json({
         status: 'INVALID',
         verified: false,
         error: 'Could not decode QR code from image'
       });
+    }
+
+    // If QR contains full URL (e.g. https://vedahvital.com/verify?batch=VV-XXX&source=qr), extract batch code
+    try {
+      if (code.includes('?')) {
+        const urlObj = new URL(code, 'https://vedahvital.com');
+        const batchParam = urlObj.searchParams.get('batch');
+        if (batchParam) {
+          code = batchParam.trim();
+        }
+      }
+    } catch {
+      // not a valid URL, treat as raw code
     }
 
     const qrDoc = await QrCode.findOne({ code });

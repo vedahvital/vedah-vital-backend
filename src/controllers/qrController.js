@@ -117,7 +117,9 @@ async function details(req, res) {
   const d = await QrCodeModel.findById(id);
   if (!d) return res.status(404).json({ error: 'Not found' });
 
-  const qrDataUrl = await QRCode.toDataURL(d.code, { margin: 1, width: 256 });
+  const siteUrl = (process.env.SITE_URL || 'https://vedahvital.com').replace(/\/+$/, '');
+  const verifyUrl = `${siteUrl}/verify?batch=${encodeURIComponent(d.code)}&source=qr`;
+  const qrDataUrl = await QRCode.toDataURL(verifyUrl, { margin: 1, width: 256 });
 
   return res.json({
     id: d._id.toString(),
@@ -127,6 +129,7 @@ async function details(req, res) {
     product: d.product,
     labReports: d.labReports,
     qrDataUrl,
+    verifyUrl,
     createdAt: d.createdAt,
     updatedAt: d.updatedAt
   });
@@ -164,6 +167,7 @@ async function exportPdf(req, res) {
   const doc = new PDFDocument({ size: 'A4', margin: 40 });
   doc.pipe(res);
 
+  const siteUrl = (process.env.SITE_URL || 'https://vedahvital.com').replace(/\/+$/, '');
   const pageWidth = doc.page.width - doc.page.margins.left - doc.page.margins.right;
   const qrSize = 160;
   const cols = 2;
@@ -173,7 +177,9 @@ async function exportPdf(req, res) {
 
   for (let i = 0; i < docs.length; i += 1) {
     const item = docs[i];
-    const buf = await QRCode.toBuffer(item.code, { width: qrSize, margin: 1 });
+    // Encode full verification URL so mobile cameras directly open verification page
+    const verifyUrl = `${siteUrl}/verify?batch=${encodeURIComponent(item.code)}&source=qr`;
+    const buf = await QRCode.toBuffer(verifyUrl, { width: qrSize, margin: 1 });
 
     doc.image(buf, x + (cellWidth - qrSize) / 2, y, { width: qrSize });
     doc.fontSize(10).text(item.code, x, y + qrSize + 6, { width: cellWidth, align: 'center' });

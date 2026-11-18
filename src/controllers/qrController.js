@@ -24,6 +24,8 @@ const generateSchema = z.object({
   labReports: z
     .object({
       potency: z.array(z.string()).max(5).optional(),
+      heavyMetalsMicrobial: z.array(z.string()).max(5).optional(),
+      allergens: z.array(z.string()).max(5).optional(),
       heavyMetals: z.array(z.string()).max(5).optional(),
       microbial: z.array(z.string()).max(5).optional()
     })
@@ -61,7 +63,7 @@ async function generate(req, res) {
       used: false,
       usedAt: null,
       product: parsed.product || {},
-      labReports: parsed.labReports || { potency: [], heavyMetals: [], microbial: [] }
+      labReports: parsed.labReports || { potency: [], heavyMetalsMicrobial: [], allergens: [], heavyMetals: [], microbial: [] }
     });
 
     items.push(doc);
@@ -75,8 +77,8 @@ async function generate(req, res) {
       product: d.product,
       labReportsCount: {
         potency: d.labReports?.potency?.length || 0,
-        heavyMetals: d.labReports?.heavyMetals?.length || 0,
-        microbial: d.labReports?.microbial?.length || 0
+        heavyMetalsMicrobial: (d.labReports?.heavyMetalsMicrobial?.length || 0) + (d.labReports?.heavyMetals?.length || 0) + (d.labReports?.microbial?.length || 0),
+        allergens: d.labReports?.allergens?.length || 0
       },
       createdAt: d.createdAt
     }))

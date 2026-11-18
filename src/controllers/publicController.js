@@ -52,7 +52,7 @@ async function contact(req, res, next) {
 }
 
 async function verifyQr(req, res) {
-  const rawCode = String(req.params.code || '').trim();
+  let rawCode = String(req.params.code || '').trim();
   if (!rawCode) {
     return res.status(400).json({
       status: 'INVALID',
@@ -61,12 +61,25 @@ async function verifyQr(req, res) {
     });
   }
 
-  // Case-insensitive lookup (exact or case-insensitive regex)
+  // If query is a URL with batch parameter (e.g. /verify?batch=VV-XXX), extract the batch parameter
+  try {
+    if (rawCode.includes('?')) {
+      const urlObj = new URL(rawCode, 'https://vedahvital.com');
+      const b = urlObj.searchParams.get('batch');
+      if (b) rawCode = b.trim();
+    }
+  } catch {
+    // not a URL, use raw string
+  }
+
+  // Case-insensitive lookup against both QR code token and product batch number
   const escapedCode = rawCode.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   const qr = await QrCode.findOne({
     $or: [
       { code: rawCode },
-      { code: { $regex: new RegExp(`^${escapedCode}$`, 'i') } }
+      { code: { $regex: new RegExp(`^${escapedCode}$`, 'i') } },
+      { 'product.batchNo': rawCode },
+      { 'product.batchNo': { $regex: new RegExp(`^${escapedCode}$`, 'i') } }
     ]
   });
 
@@ -80,6 +93,20 @@ async function verifyQr(req, res) {
   }
 
   const now = new Date();
+
+  // Consolidate lab reports (merging heavy metals & microbial into single report, plus allergens)
+  const mergedHeavyMetalsMicrobial = [
+    ...(qr.labReports?.heavyMetalsMicrobial || []),
+    ...(qr.labReports?.heavyMetals || []),
+    ...(qr.labReports?.microbial || [])
+  ];
+  const formattedLabReports = {
+    potency: qr.labReports?.potency || [],
+    heavyMetalsMicrobial: mergedHeavyMetalsMicrobial,
+    allergens: qr.labReports?.allergens || [],
+    heavyMetals: qr.labReports?.heavyMetals || [],
+    microbial: qr.labReports?.microbial || []
+  };
 
   // Scenario B: Code already scanned
   if (qr.used) {
@@ -105,7 +132,7 @@ async function verifyQr(req, res) {
         mfgDate: qr.product?.mfgDate || '—',
         expDate: qr.product?.expDate || '—'
       },
-      labReports: qr.labReports || { potency: [], heavyMetals: [], microbial: [] },
+      labReports: formattedLabReports,
       message: "This product's QR code has previously been scanned."
     });
   }
@@ -132,7 +159,7 @@ async function verifyQr(req, res) {
       mfgDate: qr.product?.mfgDate || '—',
       expDate: qr.product?.expDate || '—'
     },
-    labReports: qr.labReports || { potency: [], heavyMetals: [], microbial: [] },
+    labReports: formattedLabReports,
     message: 'Your product has been successfully verified.'
   });
 }
@@ -185,7 +212,9 @@ async function verifyQrImage(req, res) {
     const qrDoc = await QrCode.findOne({
       $or: [
         { code },
-        { code: { $regex: new RegExp(`^${escapedCode}$`, 'i') } }
+        { code: { $regex: new RegExp(`^${escapedCode}$`, 'i') } },
+        { 'product.batchNo': code },
+        { 'product.batchNo': { $regex: new RegExp(`^${escapedCode}$`, 'i') } }
       ]
     });
     if (!qrDoc) {
@@ -198,6 +227,19 @@ async function verifyQrImage(req, res) {
     }
 
     const now = new Date();
+
+    const mergedHeavyMetalsMicrobial = [
+      ...(qrDoc.labReports?.heavyMetalsMicrobial || []),
+      ...(qrDoc.labReports?.heavyMetals || []),
+      ...(qrDoc.labReports?.microbial || [])
+    ];
+    const formattedLabReports = {
+      potency: qrDoc.labReports?.potency || [],
+      heavyMetalsMicrobial: mergedHeavyMetalsMicrobial,
+      allergens: qrDoc.labReports?.allergens || [],
+      heavyMetals: qrDoc.labReports?.heavyMetals || [],
+      microbial: qrDoc.labReports?.microbial || []
+    };
 
     if (qrDoc.used) {
       const firstVerifiedAt = qrDoc.usedAt || qrDoc.updatedAt || qrDoc.createdAt;
@@ -222,7 +264,7 @@ async function verifyQrImage(req, res) {
           mfgDate: qrDoc.product?.mfgDate || '—',
           expDate: qrDoc.product?.expDate || '—'
         },
-        labReports: qrDoc.labReports || { potency: [], heavyMetals: [], microbial: [] },
+        labReports: formattedLabReports,
         message: "This product's QR code has previously been scanned."
       });
     }
@@ -248,7 +290,7 @@ async function verifyQrImage(req, res) {
         mfgDate: qrDoc.product?.mfgDate || '—',
         expDate: qrDoc.product?.expDate || '—'
       },
-      labReports: qrDoc.labReports || { potency: [], heavyMetals: [], microbial: [] },
+      labReports: formattedLabReports,
       message: 'Your product has been successfully verified.'
     });
   } catch (err) {
@@ -297,6 +339,8 @@ async function testGenerate(req, res) {
 
     const labReports = req.body?.labReports || {
       potency: [defaultLabReportImage],
+      heavyMetalsMicrobial: [defaultLabReportImage],
+      allergens: [defaultLabReportImage],
       heavyMetals: [defaultLabReportImage],
       microbial: [defaultLabReportImage]
     };

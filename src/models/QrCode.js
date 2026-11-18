@@ -19,8 +19,10 @@ const ProductSchema = new mongoose.Schema(
 const LabReportsSchema = new mongoose.Schema(
   {
     potency: { type: [String], default: [] }, // Active potency assay images
-    heavyMetals: { type: [String], default: [] }, // Heavy metals & toxins report images
-    microbial: { type: [String], default: [] } // Microbial screening report images
+    heavyMetalsMicrobial: { type: [String], default: [] }, // Merged Heavy metals & Microbial contaminants
+    allergens: { type: [String], default: [] }, // Allergens screening images
+    heavyMetals: { type: [String], default: [] }, // Legacy backwards compatibility
+    microbial: { type: [String], default: [] } // Legacy backwards compatibility
   },
   { _id: false }
 );
@@ -33,7 +35,7 @@ const QrCodeSchema = new mongoose.Schema(
     scanCount: { type: Number, default: 0 },
     lastScannedAt: { type: Date, default: null },
     product: { type: ProductSchema, default: () => ({}) },
-    labReports: { type: LabReportsSchema, default: () => ({ potency: [], heavyMetals: [], microbial: [] }) }
+    labReports: { type: LabReportsSchema, default: () => ({ potency: [], heavyMetalsMicrobial: [], allergens: [], heavyMetals: [], microbial: [] }) }
   },
   { timestamps: true }
 );

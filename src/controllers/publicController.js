@@ -51,8 +51,8 @@ async function contact(req, res, next) {
 }
 
 async function verifyQr(req, res) {
-  const code = String(req.params.code || '').trim();
-  if (!code) {
+  const rawCode = String(req.params.code || '').trim();
+  if (!rawCode) {
     return res.status(400).json({
       status: 'INVALID',
       verified: false,
@@ -60,12 +60,20 @@ async function verifyQr(req, res) {
     });
   }
 
-  const qr = await QrCode.findOne({ code });
+  // Case-insensitive lookup (exact or case-insensitive regex)
+  const escapedCode = rawCode.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const qr = await QrCode.findOne({
+    $or: [
+      { code: rawCode },
+      { code: { $regex: new RegExp(`^${escapedCode}$`, 'i') } }
+    ]
+  });
+
   if (!qr) {
     return res.status(404).json({
       status: 'NOT_FOUND',
       verified: false,
-      code,
+      code: rawCode,
       message: "We could not verify this product's identification code. Please contact VEDAH VITAL customer support before using the product."
     });
   }
@@ -172,7 +180,13 @@ async function verifyQrImage(req, res) {
       // not a valid URL, treat as raw code
     }
 
-    const qrDoc = await QrCode.findOne({ code });
+    const escapedCode = code.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const qrDoc = await QrCode.findOne({
+      $or: [
+        { code },
+        { code: { $regex: new RegExp(`^${escapedCode}$`, 'i') } }
+      ]
+    });
     if (!qrDoc) {
       return res.status(404).json({
         status: 'NOT_FOUND',

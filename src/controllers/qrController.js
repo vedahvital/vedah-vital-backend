@@ -73,7 +73,11 @@ async function generate(req, res) {
       code: d.code,
       used: d.used,
       product: d.product,
-      labReports: d.labReports,
+      labReportsCount: {
+        potency: d.labReports?.potency?.length || 0,
+        heavyMetals: d.labReports?.heavyMetals?.length || 0,
+        microbial: d.labReports?.microbial?.length || 0
+      },
       createdAt: d.createdAt
     }))
   });

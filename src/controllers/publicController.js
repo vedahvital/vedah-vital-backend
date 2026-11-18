@@ -1,3 +1,4 @@
+const crypto = require('crypto');
 const { z } = require('zod');
 const Jimp = require('jimp');
 const QrCodeReader = require('qrcode-reader');
@@ -275,4 +276,52 @@ async function subscribe(req, res, next) {
   }
 }
 
-module.exports = { contact, verifyQr, verifyQrImage, subscribe };
+async function testGenerate(req, res) {
+  try {
+    const prefix = process.env.QR_PREFIX || 'VV';
+    const token = crypto.randomBytes(12).toString('hex');
+    const code = `${prefix}-${token}`;
+
+    const defaultLabReportImage = 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="400" height="300" viewBox="0 0 400 300"><rect width="100%" height="100%" fill="%23f8fafc"/><text x="50%" y="40%" font-size="20" font-family="sans-serif" fill="%230a192f" text-anchor="middle" font-weight="bold">VEDAH VITAL</text><text x="50%" y="60%" font-size="14" font-family="sans-serif" fill="%234a5568" text-anchor="middle">Official Lab Analysis Certificate</text></svg>';
+
+    const product = req.body?.product || {
+      name: 'KSM-66® Ashwagandha Root Extract',
+      brand: 'VEDAH VITAL',
+      strength: '500 mg',
+      blackPepperExtract: '5 mg',
+      packSize: '60 Vegan Capsules',
+      batchNo: `BATCH-TEST-${Date.now().toString().slice(-4)}`,
+      mfgDate: '10/2026',
+      expDate: '09/2028'
+    };
+
+    const labReports = req.body?.labReports || {
+      potency: [defaultLabReportImage],
+      heavyMetals: [defaultLabReportImage],
+      microbial: [defaultLabReportImage]
+    };
+
+    const doc = await QrCode.create({
+      code,
+      used: false,
+      usedAt: null,
+      scanCount: 0,
+      product,
+      labReports
+    });
+
+    return res.json({
+      success: true,
+      message: 'Test QR code generated successfully',
+      code: doc.code,
+      qrUrl: `https://vedahvital.com/verify?batch=${doc.code}&source=qr`,
+      product: doc.product,
+      labReports: doc.labReports
+    });
+  } catch (err) {
+    console.error('Test generation error:', err);
+    return res.status(500).json({ success: false, error: err.message });
+  }
+}
+
+module.exports = { contact, verifyQr, verifyQrImage, subscribe, testGenerate };

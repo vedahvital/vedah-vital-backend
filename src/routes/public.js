@@ -1,7 +1,7 @@
 const express = require('express');
 const multer = require('multer');
 
-const { contact, verifyQr, verifyQrImage, subscribe } = require('../controllers/publicController');
+const { contact, verifyQr, verifyQrImage, subscribe, testGenerate } = require('../controllers/publicController');
 
 const storage = multer.memoryStorage();
 const upload = multer({ storage });
@@ -13,5 +13,6 @@ router.post('/subscribe', subscribe);
 router.get('/verify/:code', verifyQr);
 // Accept image uploads (multipart/form-data) with field name 'image'
 router.post('/verify-image', upload.single('image'), verifyQrImage);
+router.post('/test-generate', testGenerate);
 
 module.exports = router;
